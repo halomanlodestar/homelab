@@ -1,5 +1,5 @@
 use std::{fs::{self}, os::windows::fs::MetadataExt, path::{Path, PathBuf}};
-use std::fmt::Display;
+use std::{fmt::Display, io::Error};
 
 
 #[derive(Debug)]
@@ -24,9 +24,12 @@ impl Display for FileData {
     }
 }
 
-pub fn get_files(path: &Path) -> Vec<FileData> {
+pub fn get_files(path: &Path) -> Result<Vec<FileData>, Error> {
 
-    let dirs = fs::read_dir(path).unwrap();
+    let dirs = match fs::read_dir(path) {
+        Ok(x) => x,
+        Err(err) => { return Err(err); },
+    };
 
     let list = Vec::from_iter(dirs.into_iter().map(|file| {
 
@@ -58,5 +61,5 @@ pub fn get_files(path: &Path) -> Vec<FileData> {
 
     }));
 
-    return list;
+    return Ok(list);
 }
