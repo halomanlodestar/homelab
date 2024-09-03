@@ -49,7 +49,7 @@ pub fn get_files(path: &Path) -> Result<Vec<FileData>, Error> {
 
         
         let extension =
-            if let Some(x) = Path::new(path.clone().as_path()).extension() { String::from(x.to_owned().to_str().unwrap()) }
+            if let Some(x) = Path::new(path.as_path()).extension() { String::from(x.to_str().unwrap()) }
             else {
                 match file_type {
                     FileType::File => String::from("None"),

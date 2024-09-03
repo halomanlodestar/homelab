@@ -1,6 +1,6 @@
 use std::path::Path;
 use axum::{extract::Query, http::StatusCode, Json};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use crate::files::{get_files, FileData};
 
 #[derive(Deserialize)]
@@ -8,7 +8,12 @@ pub struct FilePath {
   path: String
 }
 
-pub async fn get_files_from(file_path: Query<FilePath>) -> Result<Json<Vec<FileData>>, StatusCode> {
+#[derive(Serialize)]
+pub struct Response {
+  files: Vec<FileData>
+}
+
+pub async fn get_files_from(file_path: Query<FilePath>) -> Result<Json<Response>, StatusCode> {
 
   let path = &file_path.path;
   let final_path = String::from("src/root_files_folder/") + path;
@@ -20,5 +25,5 @@ pub async fn get_files_from(file_path: Query<FilePath>) -> Result<Json<Vec<FileD
     },
   };
 
-  return Ok(Json(list));
+  return Ok(Json(Response { files: list }));
 }
