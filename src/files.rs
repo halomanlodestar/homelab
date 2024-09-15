@@ -101,8 +101,10 @@ pub fn get_files(path: &Path) -> Result<Vec<FileData>, Error> {
     return Ok(list);
 }
 
-pub fn read_file(path: PathBuf) -> Result<std::string::String, String> {
-    return match fs::read_to_string(path) {
+pub fn read_file(path: PathBuf) -> Result<Vec<u8>, String> {
+    // println!("{:?}", buf);
+
+    return match fs::read(path) {
         Ok(file) => Ok(file),
         Err(_) => Err(String::from("Unable to read the specified file")),
     };
