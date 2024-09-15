@@ -5,6 +5,9 @@ use std::{
     os::windows::fs::MetadataExt,
     path::{Path, PathBuf},
 };
+use tokio::fs::File;
+
+use tokio_util::io::ReaderStream;
 
 #[derive(Debug, Serialize)]
 pub enum FileType {
@@ -101,9 +104,14 @@ pub fn get_files(path: &Path) -> Result<Vec<FileData>, Error> {
     return Ok(list);
 }
 
-pub fn read_file(path: PathBuf) -> Result<Vec<u8>, String> {
-    return match fs::read(path) {
-        Ok(file) => Ok(file),
+pub async fn read_file(path: PathBuf) -> Result<ReaderStream<File>, String> {
+    // return match fs::read(path) {
+    //     Ok(file) => Ok(file),
+    //     Err(_) => Err(String::from("Unable to read the specified file")),
+    // };
+
+    return match File::open(path).await {
+        Ok(file) => Ok(ReaderStream::new(file)),
         Err(_) => Err(String::from("Unable to read the specified file")),
     };
 }

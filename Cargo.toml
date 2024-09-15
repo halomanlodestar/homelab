@@ -6,9 +6,12 @@ edition = "2021"
 [dependencies]
 anyhow = "*"
 axum = "0.7.5"
+futures-io = "0.3.30"
 serde = {version = "1.0.209", features = ["derive"]}
 serde_json = {version = "1.0.127"}
 tokio = { version = "1", features = ["full"] }
+tokio-stream = "0.1.16"
+tokio-util = { version ="0.7.12", features = ["full"] }
 
 [dev-dependencies]
 anyhow = "*"
