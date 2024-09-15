@@ -1,3 +1,4 @@
+use serde::Serialize;
 use std::{fmt::Display, io::Error};
 use std::{
     fs::{self},
@@ -5,7 +6,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, Serialize)]
 pub enum FileType {
     File = 1,
     Dir = 0,
@@ -34,7 +35,12 @@ impl ToString for FileType {
     }
 }
 
-#[derive(serde::Serialize)]
+// #[derive(Serialize)]
+// pub struct Metadata {
+//     pub size: usize,
+// }
+
+#[derive(Serialize)]
 pub struct FileData {
     pub name: String,
     pub path: PathBuf,
@@ -54,26 +60,29 @@ impl Display for FileData {
 }
 
 pub fn get_files(path: &Path) -> Result<Vec<FileData>, Error> {
-    let dirs = match fs::read_dir(path) {
+    let dir_content = match fs::read_dir(path) {
         Ok(x) => x,
         Err(err) => {
             return Err(err);
         }
     };
 
-    let list = Vec::from_iter(dirs.into_iter().map(|file| {
-        let file = file.unwrap();
-        let metadata = file.metadata().unwrap();
+    let list = Vec::from_iter(dir_content.into_iter().map(|file| {
+        let file = match file {
+            Ok(entry) => entry,
+            Err(_) => panic!("No such entry found"),
+        };
+        let metadata = match file.metadata() {
+            Ok(x) => x,
+            Err(_) => panic!("No Meta data found for specified file"),
+        };
 
-        let name = String::from(file.file_name().to_str().unwrap());
+        let name = String::from(file.file_name().to_str().unwrap_or("unnamed"));
         let path = file.path();
         let size = metadata.file_size();
-        let file_type;
-
-        if metadata.file_type().is_file() {
-            file_type = FileType::File;
-        } else {
-            file_type = FileType::Dir;
+        let file_type = match metadata.file_type().is_file() {
+            true => FileType::File,
+            false => FileType::Dir,
         };
 
         let extension = if let Some(x) = Path::new(path.as_path()).extension() {

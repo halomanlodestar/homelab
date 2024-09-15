@@ -36,7 +36,7 @@ pub async fn get_files_from(
         }
     };
 
-    match request.file_type.clone() {
+    match &request.file_type {
         Some(file_type) => {
             if !FileType::is_valid(&file_type) {
                 return Err((
@@ -50,15 +50,10 @@ pub async fn get_files_from(
 
             list = list
                 .into_iter()
-                .filter(|file| file_type == file.file_type.to_string())
+                .filter(|file| *file_type == file.file_type.to_string())
                 .collect();
         }
-        None => {
-            return Err((
-                StatusCode::BAD_REQUEST,
-                String::from("Invalud File Type, either select 'File' or 'Dir'"),
-            ))
-        }
+        None => {}
     }
 
     return Ok(Json(SuccessResponse { files: list }));
