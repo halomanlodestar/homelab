@@ -7,6 +7,7 @@ use std::path::Path;
 pub struct Request {
     path: Option<String>,
     file_type: Option<String>,
+    search: Option<String>
 }
 
 #[derive(Serialize)]
@@ -54,6 +55,13 @@ pub async fn get_files_from(
                 .collect();
         }
         None => {}
+    }
+
+    match &request.search {
+        Some(name) => {
+            list = list.into_iter().filter(|file| file.name.contains(name)).collect();
+        },
+        None => {},
     }
 
     return Ok(Json(SuccessResponse { files: list }));
