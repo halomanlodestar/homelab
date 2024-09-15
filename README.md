@@ -15,7 +15,7 @@ Refer to Cargo.toml file for versions
 
 ## Module Structure
 
-#### `api`
+### `api`
 
 Module contains end points for requests
 This is divided into Router and Controllers for separation of concerns
