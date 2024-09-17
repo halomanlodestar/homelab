@@ -235,6 +235,7 @@ dependencies = [
  "anyhow",
  "axum",
  "futures-io",
+ "hyper",
  "serde",
  "serde_json",
  "tokio",
