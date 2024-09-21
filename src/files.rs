@@ -1,3 +1,4 @@
+use axum::body::Bytes;
 use serde::Serialize;
 use std::{fmt::Display, io::Error};
 use std::{
@@ -6,8 +7,6 @@ use std::{
     path::{Path, PathBuf},
 };
 use tokio::fs::File;
-
-use tokio_util::io::ReaderStream;
 
 #[derive(Debug, Serialize)]
 pub enum FileType {
@@ -104,14 +103,16 @@ pub fn get_files(path: &Path) -> Result<Vec<FileData>, Error> {
     return Ok(list);
 }
 
-pub async fn read_file(path: PathBuf) -> Result<ReaderStream<File>, String> {
-    // return match fs::read(path) {
-    //     Ok(file) => Ok(file),
-    //     Err(_) => Err(String::from("Unable to read the specified file")),
-    // };
+pub async fn read_file(path: PathBuf) -> Result<Bytes, String> {
+    return match File::open(&path).await {
+        Ok(_) => {
+            let stream = match fs::read(path) {
+                Ok(file) => file,
+                Err(_) => todo!(),
+            };
 
-    return match File::open(path).await {
-        Ok(file) => Ok(ReaderStream::new(file)),
+            return Ok(Bytes::from(stream));
+        }
         Err(_) => Err(String::from("Unable to read the specified file")),
     };
 }
