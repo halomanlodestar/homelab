@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow = "*"
 axum = "0.7.5"
+futures = "0.3.30"
 futures-io = "0.3.30"
 hyper = "1.4.1"
 serde = {version = "1.0.209", features = ["derive"]}
