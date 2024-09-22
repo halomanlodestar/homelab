@@ -17,7 +17,7 @@ pub async fn read_file_controller(
 ) -> Result<impl IntoResponse, impl IntoResponse> {
     let mut header = HeaderMap::new();
 
-    const BASE_SIZE: usize = 100;
+    const BASE_SIZE: usize = 1_000;
 
     let start_range: usize = match request_headers.get("Range") {
         Some(val) => {
