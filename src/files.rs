@@ -1,6 +1,7 @@
 use axum::body::Bytes;
 use serde::Serialize;
 use std::fmt::Display;
+use std::fs::Metadata;
 use std::io::Error;
 use std::os::windows::fs::MetadataExt;
 use std::{
@@ -106,9 +107,9 @@ pub fn get_files(path: &Path) -> std::result::Result<Vec<FileData>, Error> {
     return Ok(list);
 }
 
-pub async fn read_file(path: PathBuf) -> Result<Bytes, String> {
+pub async fn _read_file(path: PathBuf) -> Result<Bytes, String> {
     return match File::open(&path).await {
-        tokio::io::Result::Ok(_) => {
+        TokioResult::Ok(_) => {
             let stream = match fs::read(path) {
                 Ok(file) => file,
                 Err(_) => todo!(),
@@ -120,11 +121,21 @@ pub async fn read_file(path: PathBuf) -> Result<Bytes, String> {
     };
 }
 
+pub async fn get_file_metadata(path: PathBuf) -> Result<Metadata, String> {
+    return match File::open(path).await {
+        Ok(file) => match file.metadata().await {
+            Ok(x) => return Ok(x),
+            Err(_) => Err(String::from("Unable to fetch metadata")),
+        },
+        Err(_) => Err(String::from("No such file found")),
+    }
+}
 
 pub async fn read_file_range(path: PathBuf, start: u64, end: u64) -> TokioResult<impl Stream<Item = TokioResult<Vec<u8>>>> {
-
     let mut file = match File::open(path).await {
-        tokio::io::Result::Ok(x) => x,
+        TokioResult::Ok(x) => {
+            x
+        },
         Err(_) => todo!()
         // Err(_) => return Err(String::from("No such file found")),
     };
@@ -140,11 +151,11 @@ pub async fn read_file_range(path: PathBuf, start: u64, end: u64) -> TokioResult
         let mut buffer = vec![0; chunk_size];
 
         match file.read(&mut buffer).await {
-            tokio::io::Result::Ok(0) => None,
-            tokio::io::Result::Ok(n) => {
+            TokioResult::Ok(0) => None,
+            TokioResult::Ok(n) => {
                 Some((Ok(buffer[..n].to_vec()), (file, chunk_size)))
             },
-            tokio::io::Result::Err(e) => Some((tokio::io::Result::Err(e), (file, chunk_size))),
+            TokioResult::Err(e) => Some((TokioResult::Err(e), (file, chunk_size))),
         }
     });
 
