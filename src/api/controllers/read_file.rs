@@ -31,7 +31,7 @@ pub async fn read_file_controller(
     let path = PathBuf::from(
         String::from("src/root_files_folder/") + &request.path.clone().unwrap_or(String::from("/")),
     );
-    
+
     let metadata = get_file_metadata(path.clone()).await.unwrap();
     let max_size = metadata.file_size();
 
@@ -39,18 +39,27 @@ pub async fn read_file_controller(
 
     let file = match read_file_range(path.clone(), start_range, end_range).await {
         Ok(x) => x,
-        Err(_) => todo!(),
+        Err(err) => return Err((StatusCode::INTERNAL_SERVER_ERROR, err)),
     };
 
-    let status = if start_range == max_size || end_range == max_size { StatusCode::OK } else { StatusCode::PARTIAL_CONTENT };
+    let status = if start_range == max_size || end_range == max_size {
+        StatusCode::OK
+    } else {
+        StatusCode::PARTIAL_CONTENT
+    };
 
     header.insert("Content-Type", "video/mp4".parse().unwrap());
     header.insert("Accept-Ranges", "bytes".parse().unwrap());
-    header.insert("Content-Range", format!("bytes {}-{}/{}", start_range, end_range, max_size).parse().unwrap());
+    header.insert(
+        "Content-Range",
+        format!("bytes {}-{}/{}", start_range, end_range, max_size)
+            .parse()
+            .unwrap(),
+    );
 
     println!("bytes {}-{}/{}", start_range, end_range, max_size);
 
     let stream = Body::from_stream(file);
 
-    return (status, header, stream);
+    return Ok((status, header, stream));
 }

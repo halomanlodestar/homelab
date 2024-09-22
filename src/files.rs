@@ -1,4 +1,5 @@
 use axum::body::Bytes;
+use futures::stream::{self, Stream};
 use serde::Serialize;
 use std::fmt::Display;
 use std::fs::Metadata;
@@ -9,8 +10,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use tokio::fs::File;
-use tokio::io::{Result as TokioResult, AsyncReadExt, SeekFrom, AsyncSeekExt};
-use futures::stream::{self, Stream};
+use tokio::io::{AsyncReadExt, AsyncSeekExt, Result as TokioResult, SeekFrom};
 
 #[derive(Debug, Serialize)]
 pub enum FileType {
@@ -128,36 +128,38 @@ pub async fn get_file_metadata(path: PathBuf) -> Result<Metadata, String> {
             Err(_) => Err(String::from("Unable to fetch metadata")),
         },
         Err(_) => Err(String::from("No such file found")),
-    }
+    };
 }
 
-pub async fn read_file_range(path: PathBuf, start: u64, end: u64) -> TokioResult<impl Stream<Item = TokioResult<Vec<u8>>>> {
+pub async fn read_file_range(
+    path: PathBuf,
+    start: u64,
+    end: u64,
+) -> Result<impl Stream<Item = TokioResult<Vec<u8>>>, String> {
     let mut file = match File::open(path).await {
-        TokioResult::Ok(x) => {
-            x
-        },
-        Err(_) => todo!()
-        // Err(_) => return Err(String::from("No such file found")),
+        TokioResult::Ok(x) => x,
+        Err(_) => return Err(String::from("No such file found")),
     };
 
     match file.seek(SeekFrom::Start(start)).await {
         Ok(x) => x,
-        Err(_) => todo!(),
+        Err(_) => return Err(String::from("Unable to read the specified portion")),
     };
 
     let chunk_size = ((end - start) + 1) as usize;
 
-    let file_stream = stream::unfold((file, chunk_size), move |(mut file, chunk_size)| async move {
-        let mut buffer = vec![0; chunk_size];
+    let file_stream = stream::unfold(
+        (file, chunk_size),
+        move |(mut file, chunk_size)| async move {
+            let mut buffer = vec![0; chunk_size];
 
-        match file.read(&mut buffer).await {
-            TokioResult::Ok(0) => None,
-            TokioResult::Ok(n) => {
-                Some((Ok(buffer[..n].to_vec()), (file, chunk_size)))
-            },
-            TokioResult::Err(e) => Some((TokioResult::Err(e), (file, chunk_size))),
-        }
-    });
+            match file.read(&mut buffer).await {
+                TokioResult::Ok(0) => None,
+                TokioResult::Ok(n) => Some((Ok(buffer[..n].to_vec()), (file, chunk_size))),
+                TokioResult::Err(e) => Some((TokioResult::Err(e), (file, chunk_size))),
+            }
+        },
+    );
 
     return Ok(file_stream);
 }
