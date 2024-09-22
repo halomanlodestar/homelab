@@ -7,8 +7,6 @@ use std::{os::windows::fs::MetadataExt, path::PathBuf};
 #[derive(Deserialize)]
 pub struct Request {
     path: Option<String>,
-    // start: Option<usize>,
-    // end: Option<usize>,
 }
 
 pub async fn read_file_controller(
@@ -17,7 +15,7 @@ pub async fn read_file_controller(
 ) -> impl IntoResponse {
     let mut header = HeaderMap::new();
 
-    const BASE_SIZE: u64 = 128_000;
+    const BASE_SIZE: u64 = 64_000;
 
     let start_range: u64 = match request_headers.get("Range") {
         Some(val) => {
@@ -48,7 +46,7 @@ pub async fn read_file_controller(
         StatusCode::PARTIAL_CONTENT
     };
 
-    header.insert("Content-Type", "video/mp4".parse().unwrap());
+    header.insert("Content-Type", "video/x-matroska".parse().unwrap());
     header.insert("Accept-Ranges", "bytes".parse().unwrap());
     header.insert(
         "Content-Range",
