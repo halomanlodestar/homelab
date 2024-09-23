@@ -1,4 +1,4 @@
-use crate::files::{get_file_metadata, read_file_range};
+use crate::disk::files::{get_file_metadata, read_file_range};
 use axum::{body::Body, extract::Query, http::HeaderMap, response::IntoResponse};
 use hyper::StatusCode;
 use serde::Deserialize;
@@ -15,7 +15,7 @@ pub async fn read_file_controller(
 ) -> impl IntoResponse {
     let mut header = HeaderMap::new();
 
-    const BASE_SIZE: u64 = 64_000;
+    const BASE_SIZE: u64 = 128_000;
 
     let start_range: u64 = match request_headers.get("Range") {
         Some(val) => {
@@ -30,20 +30,22 @@ pub async fn read_file_controller(
         String::from("src/root_files_folder/") + &request.path.clone().unwrap_or(String::from("/")),
     );
 
-    let metadata = get_file_metadata(path.clone()).await.unwrap();
+    let metadata = match get_file_metadata(path.clone()).await {
+        Ok(x) => {
+            x
+        },
+        Err(err) => return Err((StatusCode::NOT_FOUND, err)),
+    };
+
     let max_size = metadata.file_size();
 
     let end_range = u64::min(start_range + BASE_SIZE, max_size);
 
     let file = match read_file_range(path.clone(), start_range, end_range).await {
-        Ok(x) => x,
+        Ok(x) => {
+            x
+        },
         Err(err) => return Err((StatusCode::INTERNAL_SERVER_ERROR, err)),
-    };
-
-    let status = if start_range == max_size || end_range == max_size {
-        StatusCode::OK
-    } else {
-        StatusCode::PARTIAL_CONTENT
     };
 
     header.insert("Content-Type", "video/x-matroska".parse().unwrap());
@@ -54,10 +56,10 @@ pub async fn read_file_controller(
             .parse()
             .unwrap(),
     );
-
-    println!("bytes {}-{}/{}", start_range, end_range, max_size);
-
+    header.insert("Connection", "keep-alive".parse().unwrap());
+    header.insert("Keep-Alive", "timeout=5, max=100".parse().unwrap());
+    
     let stream = Body::from_stream(file);
 
-    return Ok((status, header, stream));
+    return Ok((StatusCode::PARTIAL_CONTENT, header, stream));
 }
