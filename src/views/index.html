@@ -1,0 +1,31 @@
+<!-- @format -->
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Document</title>
+	</head>
+	<body>
+		video
+		<video
+			autoplay
+			width="480px"
+			style="border: 1px solid black"
+			controls
+			onloadeddata="log()"
+		>
+			<source
+				type="video/mp4"
+				src="http://localhost:3000/file?path=/sample-2.mp4"
+			/>
+		</video>
+
+		<script>
+			function log() {
+				console.log("Loaded first frame");
+			}
+		</script>
+	</body>
+</html>

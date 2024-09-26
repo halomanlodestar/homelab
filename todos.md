@@ -9,3 +9,8 @@
 ### 15-09-2024
 
 - Add the ability to stream partial parts of video over API instead of the entirety of it.
+
+### 23-09-2024
+
+- Skipping sessions make stream pause completely
+- On skipping, disk doesn't read at all

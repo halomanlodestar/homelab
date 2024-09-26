@@ -1,4 +1,4 @@
-use crate::files::{get_files, FileData, FileType, IsValid};
+use crate::disk::files::{get_files, FileData, FileType, IsValid};
 use axum::{extract::Query, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -13,12 +13,6 @@ pub struct Request {
 #[derive(Serialize)]
 pub struct SuccessResponse {
     files: Vec<FileData>,
-}
-
-#[derive(Serialize)]
-pub struct ApiError {
-    message: String,
-    status: u16,
 }
 
 pub async fn get_files_controller(

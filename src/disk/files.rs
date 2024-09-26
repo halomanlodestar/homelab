@@ -1,13 +1,16 @@
+use axum::body::Bytes;
+use futures::stream::{self, Stream};
 use serde::Serialize;
-use std::{fmt::Display, io::Error};
+use std::fmt::Display;
+use std::fs::Metadata;
+use std::io::Error;
+use std::os::windows::fs::MetadataExt;
 use std::{
     fs::{self},
-    os::windows::fs::MetadataExt,
     path::{Path, PathBuf},
 };
 use tokio::fs::File;
-
-use tokio_util::io::ReaderStream;
+use tokio::io::{AsyncReadExt, AsyncSeekExt, Result as TokioResult, SeekFrom};
 
 #[derive(Debug, Serialize)]
 pub enum FileType {
@@ -57,9 +60,9 @@ impl Display for FileData {
     }
 }
 
-pub fn get_files(path: &Path) -> Result<Vec<FileData>, Error> {
+pub fn get_files(path: &Path) -> std::result::Result<Vec<FileData>, Error> {
     let dir_content = match fs::read_dir(path) {
-        Ok(x) => x,
+        std::result::Result::Ok(x) => x,
         Err(err) => {
             return Err(err);
         }
@@ -104,14 +107,59 @@ pub fn get_files(path: &Path) -> Result<Vec<FileData>, Error> {
     return Ok(list);
 }
 
-pub async fn read_file(path: PathBuf) -> Result<ReaderStream<File>, String> {
-    // return match fs::read(path) {
-    //     Ok(file) => Ok(file),
-    //     Err(_) => Err(String::from("Unable to read the specified file")),
-    // };
+pub async fn _read_file(path: PathBuf) -> Result<Bytes, String> {
+    return match File::open(&path).await {
+        TokioResult::Ok(_) => {
+            let stream = match fs::read(path) {
+                Ok(file) => file,
+                Err(_) => todo!(),
+            };
 
-    return match File::open(path).await {
-        Ok(file) => Ok(ReaderStream::new(file)),
+            return Ok(Bytes::from(stream));
+        }
         Err(_) => Err(String::from("Unable to read the specified file")),
     };
+}
+
+pub async fn get_file_metadata(path: PathBuf) -> Result<Metadata, String> {
+    return match File::open(path).await {
+        Ok(file) => match file.metadata().await {
+            Ok(x) => return Ok(x),
+            Err(_) => Err(String::from("Unable to fetch metadata")),
+        },
+        Err(_) => Err(String::from("No such file found")),
+    };
+}
+
+pub async fn read_file_range(
+    path: PathBuf,
+    start: u64,
+    end: u64,
+) -> Result<impl Stream<Item = TokioResult<Vec<u8>>>, String> {
+    let mut file = match File::open(path).await {
+        TokioResult::Ok(x) => x,
+        Err(_) => return Err(String::from("No such file found")),
+    };
+
+    match file.seek(SeekFrom::Start(start)).await {
+        Ok(x) => x,
+        Err(_) => return Err(String::from("Unable to read the specified portion")),
+    };
+
+    let chunk_size = ((end - start) + 1) as usize;
+
+    let file_stream = stream::unfold(
+        (file, chunk_size),
+        move |(mut file, chunk_size)| async move {
+            let mut buffer = vec![0; chunk_size];
+
+            match file.read(&mut buffer).await {
+                TokioResult::Ok(0) => None,
+                TokioResult::Ok(n) => Some((Ok(buffer[..n].to_vec()), (file, chunk_size))),
+                TokioResult::Err(e) => Some((TokioResult::Err(e), (file, chunk_size))),
+            }
+        },
+    );
+
+    return Ok(file_stream);
 }
