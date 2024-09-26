@@ -31,9 +31,7 @@ pub async fn read_file_controller(
     );
 
     let metadata = match get_file_metadata(path.clone()).await {
-        Ok(x) => {
-            x
-        },
+        Ok(x) => x,
         Err(err) => return Err((StatusCode::NOT_FOUND, err)),
     };
 
@@ -42,9 +40,7 @@ pub async fn read_file_controller(
     let end_range = u64::min(start_range + BASE_SIZE, max_size);
 
     let file = match read_file_range(path.clone(), start_range, end_range).await {
-        Ok(x) => {
-            x
-        },
+        Ok(x) => x,
         Err(err) => return Err((StatusCode::INTERNAL_SERVER_ERROR, err)),
     };
 
@@ -58,7 +54,7 @@ pub async fn read_file_controller(
     );
     header.insert("Connection", "keep-alive".parse().unwrap());
     header.insert("Keep-Alive", "timeout=5, max=100".parse().unwrap());
-    
+
     let stream = Body::from_stream(file);
 
     return Ok((StatusCode::PARTIAL_CONTENT, header, stream));
